@@ -12,7 +12,17 @@ import (
 	simage "github.com/akiomik/shiomi/internal/image"
 )
 
+type Mode string
+
+const (
+	// ModeWaveform draws the instantaneous waveform (default).
+	ModeWaveform Mode = "waveform"
+	// ModePeakRMS draws the peak range and RMS energy of each window.
+	ModePeakRMS Mode = "peak-rms"
+)
+
 type Config struct {
+	Mode            Mode
 	Frequency       uint
 	WindowSize      uint
 	SubsamplingRate uint
@@ -42,14 +52,28 @@ func GenerateWaveformGIF(inputFile io.Reader, outputFile io.Writer, config *Conf
 	go func() {
 		defer close(imgGen)
 
-		for audioData := range a.ReadCycles() {
+		draw := func(samples []float32) {
+			wimg.DrawWaveform(samples)
+		}
+		var cycles <-chan *audio.AudioData
+		if config.Mode == ModePeakRMS {
+			cycles = a.ReadWindows()
+			draw = func(samples []float32) {
+				stats := audio.ComputeWindowStats(samples, a.NumChannels())
+				wimg.DrawPeakRMS(stats.Min, stats.Max, stats.RMS)
+			}
+		} else {
+			cycles = a.ReadCycles()
+		}
+
+		for audioData := range cycles {
 			samples := audioData.Samples
 			if audioData.Error != nil {
-				fmt.Println(err.Error())
+				fmt.Println(audioData.Error.Error())
 				os.Exit(1)
 			}
 
-			wimg.DrawWaveform(samples)
+			draw(samples)
 			pimg := wimg.ConvertToPaletted(colorPalette)
 			wimg.Clear()
 

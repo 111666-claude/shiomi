@@ -16,6 +16,13 @@ go install github.com/akiomik/shiomi@latest
 shiomi -i input.wav -o output.gif -f 1000 # 1kHz
 ```
 
+To render the peak range and RMS energy of each window instead of the
+instantaneous waveform, use the `peak-rms` mode:
+
+```sh
+shiomi -i input.wav -o output.gif -f 1000 -m peak-rms
+```
+
 ## Example
 
 commands:

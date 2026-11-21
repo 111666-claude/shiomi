@@ -64,6 +64,44 @@ func (wimg *WaveformImage) DrawWaveform(data []float32) {
 	wimg.DrawPolyLine(points)
 }
 
+// DrawPeakRMS draws one peak/RMS frame: a vertical bar spanning the window's
+// negative-to-positive peak range and a pair of horizontal RMS indicators,
+// centered in the image. Values are in the bipolar domain [-1, 1] (as
+// produced by audio.ComputeWindowStats); non-finite values are treated as 0
+// and out-of-range values are clamped to the image bounds.
+func (wimg *WaveformImage) DrawPeakRMS(min float64, max float64, rms float64) {
+	widthf := float64(wimg.Width)
+	heightf := float64(wimg.Height)
+	centerX := math.Round(widthf / 2)
+	centerY := heightf / 2
+
+	sanitize := func(v float64) float64 {
+		if math.IsNaN(v) {
+			return 0
+		}
+		return math.Max(-1, math.Min(1, v))
+	}
+	yOf := func(v float64) float64 {
+		return math.Round(centerY - sanitize(v)*centerY)
+	}
+
+	wimg.DrawBackground()
+
+	wimg.context.SetHexColor(wimg.FgColor)
+	wimg.context.SetLineWidth(wimg.LineWidth)
+
+	// peak range bar
+	wimg.context.DrawLine(centerX, yOf(max), centerX, yOf(min))
+	wimg.context.Stroke()
+
+	// RMS indicators
+	rms = math.Abs(sanitize(rms))
+	tickHalf := math.Max(wimg.LineWidth*4, widthf/16)
+	wimg.context.DrawLine(centerX-tickHalf, yOf(rms), centerX+tickHalf, yOf(rms))
+	wimg.context.DrawLine(centerX-tickHalf, yOf(-rms), centerX+tickHalf, yOf(-rms))
+	wimg.context.Stroke()
+}
+
 func (wimg *WaveformImage) Clear() {
 	wimg.context.Clear()
 }

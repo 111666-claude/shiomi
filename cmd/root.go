@@ -12,6 +12,7 @@ import (
 var (
 	input      string
 	output     string
+	mode       string
 	freq       uint
 	windowSize uint
 	rate       uint
@@ -46,6 +47,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if mode != string(generator.ModeWaveform) && mode != string(generator.ModePeakRMS) {
+			fmt.Println("mode must be \"waveform\" or \"peak-rms\"")
+			os.Exit(1)
+		}
+
 		inputFile, err := os.Open(input)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -61,6 +67,7 @@ var rootCmd = &cobra.Command{
 		defer outputFile.Close()
 
 		config := &generator.Config{
+			Mode:            generator.Mode(mode),
 			Frequency:       freq,
 			WindowSize:      windowSize,
 			SubsamplingRate: rate,
@@ -78,6 +85,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().StringVarP(&input, "input", "i", "", "A *.wav file (required)")
 	rootCmd.Flags().StringVarP(&output, "output", "o", "", "An output gif file (required)")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", string(generator.ModeWaveform), "A rendering mode: \"waveform\" or \"peak-rms\"")
 	rootCmd.Flags().UintVarP(&freq, "freq", "f", 1000, "The frequency of an input file [Hz]")
 	rootCmd.Flags().UintVarP(&windowSize, "num", "n", 3, "An output number of cycles")
 	rootCmd.Flags().UintVarP(&rate, "rate", "r", 10, "A subsampling rate for output")
